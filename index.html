@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>عمك | تحدي المعلومات الجماعي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Cairo', 'Tahoma', 'Segoe UI', 'sans-serif'],
+        },
+        animation: {
+          'pulse-fast': 'pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          'pop': 'pop 0.25s ease-out forwards',
+        },
+        keyframes: {
+          pop: {
+            '0%': { transform: 'scale(0.92)', opacity: '0' },
+            '100%': { transform: 'scale(1)', opacity: '1' },
+          }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --bg-pattern: radial-gradient(circle at 1px 1px, rgba(15, 118, 110, 0.08) 1px, transparent 0);
+  }
+  .dark {
+    --bg-pattern: radial-gradient(circle at 1px 1px, rgba(45, 212, 191, 0.07) 1px, transparent 0);
+  }
+  body {
+    background-image: var(--bg-pattern);
+    background-size: 24px 24px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* تحسين شريط التمرير الأفقي للوحة على الشاشات الصغيرة */
+  .board-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+  .board-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .board-scroll::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 99px;
+  }
+  .btn-press:active:not(:disabled) {
+    transform: translateY(2px);
+  }
+  #confetti-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+  }
+</style>
+</head>
+<body class="bg-stone-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-300 selection:bg-teal-500 selection:text-white">
+
+<canvas id="confetti-canvas"></canvas>
+
+<!-- الشريط العلوي -->
+<header class="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-stone-200 dark:border-slate-800 px-4 py-3">
+  <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
+    <div class="flex items-center gap-2.5">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-600 to-emerald-600 dark:from-teal-500 dark:to-emerald-500 flex items-center justify-center text-white font-black text-xl shadow-md shadow-teal-600/20">
+        ع
+      </div>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-l from-teal-700 to-emerald-600 dark:from-teal-300 dark:to-emerald-400 bg-clip-text text-transparent leading-none">
+          عمك
+        </h1>
+        <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">تحدي المعلومات الجماعي</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- زر تعديل النقاط للحكم -->
+      <button id="btn-referee" onclick="openRefereeModal()" title="لوحة الحكم (تعديل النقاط)" class="hidden p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-stone-200 dark:border-slate-700 transition btn-press text-xs sm:text-sm font-bold flex items-center gap-1.5">
+        <span>⚖️</span>
+        <span class="hidden md:inline">الحكم</span>
+      </button>
+
+      <!-- زر الصوت -->
+      <button id="btn-sound" onclick="toggleSound()" title="تشغيل/كتم الصوت" class="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-stone-200 dark:border-slate-700 transition btn-press" aria-label="الصوت">
+        <span id="icon-sound" class="text-base leading-none">🔊</span>
+      </button>
+
+      <!-- زر الوضع الليلي/النهاري -->
+      <button onclick="toggleTheme()" title="تبديل المظهر" class="p-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-stone-200 dark:border-slate-700 transition btn-press" aria-label="المظهر">
+        <span id="icon-theme" class="text-base leading-none">🌙</span>
+      </button>
+
+      <!-- زر لعبة جديدة -->
+      <button id="btn-new-top" onclick="confirmNewGame()" title="لعبة جديدة" class="hidden p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 transition btn-press text-xs sm:text-sm font-bold flex items-center gap-1">
+        <span>🔄</span>
+        <span class="hidden sm:inline">جديدة</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- المحتوى الرئيسي -->
+<main class="max-w-5xl mx-auto p-3 sm:p-5">
+  <div id="app"></div>
+</main>
+
+<!-- النافذة المنبثقة (Modal) -->
+<div id="modal-overlay" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-5 z-50">
+  <div id="modal-box" class="bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 max-w-xl w-full text-center shadow-2xl max-h-[92vh] overflow-y-auto animate-pop"></div>
+</div>
+
+<script>
+// ==========================================
+// 1. بنك الأسئلة الموسع (تم تفريغه بناءً على طلبك)
+// ==========================================
+const POINTS = [200, 200, 400, 400, 600, 600];
+
+const DEFAULT_BANK = [
+  { id: 'general', c: 'ثقافة عامة', icon: '🌍', pool: [] },
+  { id: 'geo', c: 'جغرافيا', icon: '🧭', pool: [] },
+  { id: 'history', c: 'تاريخ', icon: '📜', pool: [] },
+  { id: 'football', c: 'كرة القدم', icon: '⚽', pool: [] },
+  { id: 'movies', c: 'أفلام ومسلسلات', icon: '🎬', pool: [] },
+  { id: 'tech', c: 'تكنولوجيا', icon: '💻', pool: [] },
+  { id: 'science', c: 'علوم وطبيعة', icon: '🔬', pool: [] },
+  { id: 'riddles', c: 'ألغاز وذكاء', icon: '🧩', pool: [] }
+];
+
+// خوارزمية فيشر-ييتس (Fisher-Yates) للخلط العشوائي الحقيقي
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// ==========================================
+// 2. محرك المؤثرات الصوتية (Web Audio API)
+// ==========================================
+const SoundFX = (() => {
+  let ctx = null;
+  function getCtx() {
+    if (!ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) ctx = new AudioCtx();
+    }
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function playTone(freq, type, duration, delay = 0, gainVal = 0.15) {
+    if (!state.sound) return;
+    const ac = getCtx();
+    if (!ac) return;
+    const now = ac.currentTime + delay;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(gainVal, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  return {
+    click: () => playTone(520, 'sine', 0.08, 0, 0.1),
+    openQ: () => {
+      playTone(440, 'triangle', 0.15, 0, 0.14);
+      playTone(659.25, 'triangle', 0.25, 0.1, 0.14);
+    },
+    hint: () => {
+      playTone(587.33, 'sine', 0.15, 0, 0.14);
+      playTone(880, 'sine', 0.3, 0.12, 0.14);
+    },
+    double: () => {
+      playTone(392, 'sawtooth', 0.12, 0, 0.12);
+      playTone(523.25, 'sawtooth', 0.12, 0.1, 0.12);
+      playTone(783.99, 'sawtooth', 0.28, 0.2, 0.14);
+    },
+    correct: () => {
+      playTone(523.25, 'triangle', 0.16, 0, 0.18);
+      playTone(659.25, 'triangle', 0.16, 0.11, 0.18);
+      playTone(783.99, 'triangle', 0.16, 0.22, 0.18);
+      playTone(1046.5, 'triangle', 0.4, 0.33, 0.2);
+    },
+    wrong: () => {
+      playTone(240, 'sawtooth', 0.25, 0, 0.16);
+      playTone(185, 'sawtooth', 0.4, 0.18, 0.16);
+    },
+    tick: () => playTone(900, 'sine', 0.05, 0, 0.08),
+    timeUp: () => {
+      playTone(300, 'square', 0.2, 0, 0.15);
+      playTone(300, 'square', 0.2, 0.25, 0.15);
+      playTone(220, 'square', 0.45, 0.5, 0.18);
+    },
+    win: () => {
+      const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+      const times = [0, 0.12, 0.24, 0.36, 0.55, 0.7];
+      notes.forEach((n, i) => playTone(n, 'triangle', 0.3, times[i], 0.18));
+    }
+  };
+})();
+
+// ==========================================
+// 3. إدارة الحالة والتخزين المحلي (State)
+// ==========================================
+const STORAGE_KEY = 'ammak_game_v1_state';
+const CUSTOM_Q_KEY = 'ammak_game_custom_questions';
+const CUSTOM_CATS_KEY = 'ammak_game_custom_categories';
+const HIDDEN_CATS_KEY = 'ammak_game_hidden_categories';
+
+let customQuestions = []; // الأسئلة المضافة من قبل المستخدم
+let customCategories = []; // الفئات الجديدة المضافة من قبل المستخدم
+let hiddenDefaultCatIds = []; // الفئات الأساسية التي تم حذفها/إخفاؤها
+let currentQ = null; // بيانات السؤال المفتوح حالياً
+// ... existing code ... -->
+function saveCustomCategories() {
+  try {
+    localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(customCategories));
+  } catch (e) {}
+}
+
+function saveHiddenCategories() {
+  try {
+    localStorage.setItem(HIDDEN_CATS_KEY, JSON.stringify(hiddenDefaultCatIds));
+  } catch (e) {}
+}
+
+function loadState() {
+  try {
+    const rawHidden = localStorage.getItem(HIDDEN_CATS_KEY);
+    if (rawHidden) hiddenDefaultCatIds = JSON.parse(rawHidden);
+  } catch (e) {}
+
+  try {
+    const rawCats = localStorage.getItem(CUSTOM_CATS_KEY);
+    if (rawCats) customCategories = JSON.parse(rawCats);
+  } catch (e) {}
+
+  try {
+    const rawQ = localStorage.getItem(CUSTOM_Q_KEY);
+    if (rawQ) customQuestions = JSON.parse(rawQ);
+  } catch (e) {}
+
+  try {
+    const rawState = localStorage.getItem(STORAGE_KEY);
+    if (rawState) {
+      const parsed = JSON.parse(rawState);
+      state = { ...defaultState(), ...parsed };
+    }
+  } catch (e) {}
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {}
+}
+
+function saveCustomQuestions() {
+  try {
+    localStorage.setItem(CUSTOM_Q_KEY, JSON.stringify(customQuestions));
+  } catch (e) {}
+}
+
+function defaultState() {
+  return {
+    screen: 'setup',
+    theme: 'light',
+    sound: true,
+    teams: [
+      { name: 'الفريق الأول', score: 0, doubleUsed: false, hintUsed: false, stealUsed: false },
+      { name: 'الفريق الثاني', score: 0, doubleUsed: false, hintUsed: false, stealUsed: false }
+    ],
+    turn: 0,
+    selectedCatIds: ['general', 'geo', 'history', 'football', 'movies', 'tech'],
+    board: [],
+    usedCells: []
+  };
+}
+
+let state = defaultState();
+let timerInterval = null;
+let timerSeconds = 30;
+let timerPaused = false;
+let timerMax = 30;
+
+// تفريغ الأسئلة المخصصة الحالية فوراً
+customQuestions = [];
+saveCustomQuestions();
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function getMergedBank() {
+  const visibleDefaults = DEFAULT_BANK.filter(c => !hiddenDefaultCatIds.includes(c.id));
+  const allCats = [
+    ...visibleDefaults,
+    ...customCategories.map(c => ({ id: c.id, c: c.c, icon: c.icon || '📁', pool: [], isCustom: true }))
+  ];
+  return allCats.map(cat => {
+    const extra = customQuestions
+      .filter(q => q.catId === cat.id)
+      .map(q => ({ p: q.p, q: q.q, a: q.a, h: q.h }));
+    const combined = [...extra, ...cat.pool];
+    const seen = new Set();
+    const uniquePool = combined.filter(q => {
+      const key = `${Number(q.p)}|${String(q.q).trim()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return {
+      ...cat,
+      pool: uniquePool
+    };
+  });
+}
+
+function applyTheme() {
+  if (state.theme === 'dark') {
+    document.documentElement.classList.add('dark');
+    if ($('icon-theme')) $('icon-theme').textContent = '☀️';
+  } else {
+    document.documentElement.classList.remove('dark');
+    if ($('icon-theme')) $('icon-theme').textContent = '🌙';
+  }
+}
+
+function toggleTheme() {
+  SoundFX.click();
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  applyTheme();
+  saveState();
+}
+
+function toggleSound() {
+  state.sound = !state.sound;
+  if ($('icon-sound')) $('icon-sound').textContent = state.sound ? '🔊' : '🔇';
+  if (state.sound) SoundFX.click();
+  saveState();
+}
+
+function showModal(html) {
+  const overlay = $('modal-overlay');
+  const box = $('modal-box');
+  if (!overlay || !box) return;
+  box.innerHTML = html;
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+}
+
+function closeModal() {
+  stopTimer();
+  const overlay = $('modal-overlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+  overlay.classList.remove('flex');
+}
+
+// ==========================================
+// 4. المؤقت الزمني التفاعلي
+// ==========================================
+function startTimer(seconds, onExpire) {
+  stopTimer();
+  timerMax = seconds;
+  timerSeconds = seconds;
+  timerPaused = false;
+  updateTimerDisplay();
+
+  timerInterval = setInterval(() => {
+    if (timerPaused) return;
+    timerSeconds--;
+    updateTimerDisplay();
+
+    if (timerSeconds <= 5 && timerSeconds > 0) {
+      SoundFX.tick();
+    }
+    if (timerSeconds <= 0) {
+      stopTimer();
+      SoundFX.timeUp();
+      if (typeof onExpire === 'function') onExpire();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function toggleTimerPause() {
+  SoundFX.click();
+  timerPaused = !timerPaused;
+  const btn = $('btn-timer-pause');
+  if (btn) btn.textContent = timerPaused ? '▶️ استئناف' : '⏸️ إيقاف';
+}
+
+function resetTimer() {
+  SoundFX.click();
+  timerSeconds = timerMax;
+  timerPaused = false;
+  const btn = $('btn-timer-pause');
+  if (btn) btn.textContent = '⏸️ إيقاف';
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const el = $('timer-val');
+  const bar = $('timer-bar');
+  if (el) {
+    el.textContent = timerSeconds + ' ث';
+    if (timerSeconds <= 5) {
+      el.classList.add('text-rose-600', 'dark:text-rose-400', 'animate-pulse-fast');
+    } else {
+      el.classList.remove('text-rose-600', 'dark:text-rose-400', 'animate-pulse-fast');
+    }
+  }
+  if (bar) {
+    const pct = Math.max(0, Math.min(100, (timerSeconds / timerMax) * 100));
+    bar.style.width = pct + '%';
+    bar.className = `h-full transition-all duration-500 rounded-full ${timerSeconds <= 5 ? 'bg-rose-500' : 'bg-teal-500'}`;
+  }
+}
+
+// ==========================================
+// 5. شاشة الإعداد وإدارة الفئات وبنك الأسئلة
+// ==========================================
+function renderSetup() {
+  stopTimer();
+  if ($('btn-referee')) $('btn-referee').classList.add('hidden');
+  if ($('btn-new-top')) $('btn-new-top').classList.add('hidden');
+
+  const bank = getMergedBank();
+  const validIds = bank.map(c => c.id);
+  state.selectedCatIds = state.selectedCatIds.filter(id => validIds.includes(id));
+
+  const catCards = bank.map(cat => {
+    const selected = state.selectedCatIds.includes(cat.id);
+    const count = cat.pool.length;
+    return `
+      <button type="button" onclick="toggleCategorySelection('${cat.id}')"
+        class="p-3 rounded-2xl border-2 text-right transition btn-press flex items-center justify-between gap-2 ${
+          selected
+            ? 'border-teal-600 bg-teal-50/80 dark:border-teal-400 dark:bg-teal-950/50 shadow-sm'
+            : 'border-stone-200 dark:border-slate-800 bg-white dark:bg-slate-900 opacity-75 hover:opacity-100'
+        }">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-2xl shrink-0">${cat.icon}</span>
+          <div class="truncate">
+            <div class="font-extrabold text-sm sm:text-base truncate">${esc(cat.c)}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400">${count} سؤال متاح</div>
+          </div>
+        </div>
+        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+          selected ? 'bg-teal-600 text-white' : 'bg-stone-200 dark:bg-slate-800 text-transparent'
+        }">✓</span>
+      </button>
+    `;
+  }).join('');
+
+  $('app').innerHTML = `
+    <div class="space-y-5 animate-pop">
+      <div class="bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 shadow-sm space-y-5">
+        <div class="text-center space-y-1">
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">أهلاً بكم في تحدي عمك 🎯</h2>
+          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">أدخلوا أسماء الفريقين واختاروا 6 فئات لبدء المنافسة</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="p-3.5 rounded-2xl bg-stone-50 dark:bg-slate-950/60 border border-stone-200 dark:border-slate-800">
+            <label class="block text-xs font-bold text-teal-700 dark:text-teal-400 mb-1">اسم الفريق الأول</label>
+            <input id="input-t1" type="text" value="${esc(state.teams[0].name)}" placeholder="الفريق الأول"
+              class="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 font-bold text-sm focus:outline-none focus:border-teal-500">
+          </div>
+          <div class="p-3.5 rounded-2xl bg-stone-50 dark:bg-slate-950/60 border border-stone-200 dark:border-slate-800">
+            <label class="block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1">اسم الفريق الثاني</label>
+            <input id="input-t2" type="text" value="${esc(state.teams[1].name)}" placeholder="الفريق الثاني"
+              class="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 font-bold text-sm focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+
+        <div class="space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-sm font-black">اختر 6 فئات (${state.selectedCatIds.length}/6):</span>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="pickRandomCategories()" class="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-xs font-extrabold transition btn-press">
+                🎲 اختيار عشوائي
+              </button>
+              <button type="button" onclick="openCustomQuestionsModal()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-extrabold transition btn-press">
+                📚 إدارة وربط بنك الأسئلة
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+            ${catCards}
+          </div>
+        </div>
+
+        <div id="setup-error" class="hidden p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold text-center"></div>
+
+        <div class="pt-2 flex justify-center">
+          <button type="button" onclick="startGame()"
+            class="w-full sm:w-auto px-10 py-3.5 rounded-2xl bg-gradient-to-l from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-base sm:text-lg shadow-lg shadow-teal-600/25 transition btn-press">
+            🚀 ابدأ التحدي الآن
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleCategorySelection(id) {
+  SoundFX.click();
+  const idx = state.selectedCatIds.indexOf(id);
+  if (idx >= 0) {
+    state.selectedCatIds.splice(idx, 1);
+  } else {
+    if (state.selectedCatIds.length >= 6) {
+      state.selectedCatIds.shift();
+    }
+    state.selectedCatIds.push(id);
+  }
+  saveState();
+  renderSetup();
+}
+
+function pickRandomCategories() {
+  SoundFX.click();
+  const bank = getMergedBank();
+  const shuffled = shuffleArray(bank);
+  state.selectedCatIds = shuffled.slice(0, 6).map(c => c.id);
+  saveState();
+  renderSetup();
+}
+
+function pickRandomQuestionsForCategory(pool) {
+  const easy = shuffleArray(pool.filter(q => q.p === 200));
+  const med = shuffleArray(pool.filter(q => q.p === 400));
+  const hard = shuffleArray(pool.filter(q => q.p === 600));
+  const fallback = shuffleArray(pool);
+
+  const picked = [];
+  const usedQ = new Set();
+
+  function takeFrom(list, count, pts) {
+    for (let i = 0; i < count; i++) {
+      let item = list.find(x => !usedQ.has(x.q));
+      if (!item) item = fallback.find(x => !usedQ.has(x.q));
+      if (!item && fallback.length > 0) item = fallback[i % fallback.length];
+      if (item) {
+        usedQ.add(item.q);
+        picked.push({ p: pts, q: item.q, a: item.a, h: item.h || 'لا يوجد تلميح إضافي' });
+      } else {
+        picked.push({ p: pts, q: 'سؤال إضافي (أضف أسئلة لهذه الفئة)', a: 'إجابة تجريبية', h: 'أضف أسئلة من إدارة بنك الأسئلة' });
+      }
+    }
+  }
+
+  takeFrom(easy, 2, 200);
+  takeFrom(med, 2, 400);
+  takeFrom(hard, 2, 600);
+  return picked;
+}
+
+function startGame() {
+  const errEl = $('setup-error');
+  if (state.selectedCatIds.length !== 6) {
+    if (errEl) {
+      errEl.textContent = '⚠️ يرجى اختيار 6 فئات بالضبط لبدء اللعب.';
+      errEl.classList.remove('hidden');
+    }
+    SoundFX.wrong();
+    return;
+  }
+
+  const t1Name = ($('input-t1')?.value || '').trim() || 'الفريق الأول';
+  const t2Name = ($('input-t2')?.value || '').trim() || 'الفريق الثاني';
+  const bank = getMergedBank();
+
+  state.board = state.selectedCatIds.map(id => {
+    const cat = bank.find(c => c.id === id);
+    return {
+      id: cat.id,
+      c: cat.c,
+      icon: cat.icon,
+      questions: pickRandomQuestionsForCategory(cat.pool)
+    };
+  });
+
+  state.teams = [
+    { name: t1Name, score: 0, doubleUsed: false, hintUsed: false, stealUsed: false },
+    { name: t2Name, score: 0, doubleUsed: false, hintUsed: false, stealUsed: false }
+  ];
+  state.turn = 0;
+  state.usedCells = [];
+  state.screen = 'game';
+
+  SoundFX.openQ();
+  saveState();
+  renderGame();
+}
+
+// ==========================================
+// 6. نافذة إدارة وربط بنك الأسئلة والفئات
+// ==========================================
+function openCustomQuestionsModal() {
+  SoundFX.click();
+  const mergedBank = getMergedBank();
+  const catOptions = mergedBank.map(c => `<option value="${c.id}">${c.icon} ${esc(c.c)} (${c.id})</option>`).join('');
+  
+  const allCatsListHTML = mergedBank.length === 0
+    ? '<p class="text-[11px] text-rose-500">لا توجد فئات حالياً، أضف فئة جديدة أو استعد الفئات الأساسية.</p>'
+    : `<div class="flex flex-wrap gap-1.5 pt-1">` + mergedBank.map(cat => `
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-[11px] font-bold">
+          <span>${cat.icon} ${esc(cat.c)}</span>
+          <button type="button" onclick="deleteCategoryById('${cat.id}', ${cat.isCustom ? 'true' : 'false'})" class="text-rose-600 hover:text-rose-500 font-black px-1" title="حذف الفئة">×</button>
+        </span>
+      `).join('') + `</div>`;
+
+  const restoreDefaultsBtn = hiddenDefaultCatIds.length > 0
+    ? `<button type="button" onclick="restoreDefaultCategories()" class="text-[11px] font-bold underline text-teal-700 dark:text-teal-300">استعادة الفئات المحذوفة (${hiddenDefaultCatIds.length})</button>`
+    : '';
+
+  const listHTML = customQuestions.length === 0
+    ? '<p class="text-xs text-slate-400 py-2">لا توجد أسئلة مخصصة مضافة بعد.</p>'
+    : `<div class="max-h-40 overflow-y-auto space-y-1.5 text-right">` + customQuestions.map((item, idx) => `
+        <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-stone-50 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 text-xs">
+          <div class="truncate">
+            <span class="font-black text-teal-600 dark:text-teal-400">[${item.p}]</span>
+            <span class="font-bold">${esc(item.q)}</span>
+            <span class="text-slate-400">(${esc(item.a)})</span>
+          </div>
+          <button type="button" onclick="deleteCustomQuestion(${idx})" class="text-rose-600 hover:text-rose-500 font-black px-2 shrink-0" title="حذف السؤال">🗑️</button>
+        </div>
+      `).join('') + `</div>`;
+
+  showModal(`
+    <div class="text-right space-y-4">
+      <div class="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-3">
+        <h3 class="text-lg font-black">📚 إدارة وربط بنك الأسئلة</h3>
+        <button type="button" onclick="closeModal(); renderSetup();" class="w-8 h-8 rounded-full bg-stone-100 dark:bg-slate-800 font-black text-slate-500">✕</button>
+      </div>
+
+      <!-- إنشاء أو حذف فئة -->
+      <div class="p-3.5 rounded-2xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-black text-teal-800 dark:text-teal-300">✨ إدارة الفئات (إضافة أو حذف):</span>
+          ${restoreDefaultsBtn}
+        </div>
+        <div class="flex gap-2">
+          <select id="new-cat-icon" class="w-16 p-2 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-center text-base">
+            <option value="🕌">🕌</option>
+            <option value="🇸🇦">🇸🇦</option>
+            <option value="🏆">🏆</option>
+            <option value="🎮">🎮</option>
+            <option value="🍔">🍔</option>
+            <option value="🚗">🚗</option>
+            <option value="📖">📖</option>
+            <option value="🧠">🧠</option>
+            <option value="🎨">🎨</option>
+            <option value="⭐">⭐</option>
+          </select>
+          <input id="new-cat-name" type="text" placeholder="اسم الفئة (مثلاً: إسلاميات، أمثال شعبية...)" class="flex-1 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-xs sm:text-sm font-bold">
+          <button type="button" onclick="addCustomCategory()" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-black text-xs shrink-0 btn-press">
+            + إضافة
+          </button>
+        </div>
+        ${allCatsListHTML}
+      </div>
+
+      <!-- إضافة سؤال واحد -->
+      <div class="p-3.5 rounded-2xl bg-stone-50 dark:bg-slate-950/60 border border-stone-200 dark:border-slate-800 space-y-2.5">
+        <div class="text-xs font-black">➕ إضافة سؤال جديد:</div>
+        <div class="grid grid-cols-2 gap-2">
+          <select id="cq-cat" class="p-2 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-xs font-bold">
+            ${catOptions}
+          </select>
+          <select id="cq-pts" class="p-2 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-xs font-bold">
+            <option value="200">200 نقطة (سهل)</option>
+            <option value="400">400 نقطة (متوسط)</option>
+            <option value="600">600 نقطة (صعب)</option>
+          </select>
+        </div>
+        <input id="cq-q" type="text" placeholder="نص السؤال..." class="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-xs font-bold">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input id="cq-a" type="text" placeholder="الإجابة الصحيحة..." class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-xs font-bold">
+          <input id="cq-h" type="text" placeholder="تلميح (اختياري)..." class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-xs font-bold">
+        </div>
+        <button type="button" onclick="addCustomQuestion()" class="w-full py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-black text-xs btn-press">
+          حفظ السؤال في البنك
+        </button>
+      </div>
+
+      <!-- استيراد وتصدير JSON -->
+      <div class="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-1">
+          <span class="text-xs font-black text-amber-800 dark:text-amber-300">🔗 ربط ملف JSON (محلي أو عبر GitHub):</span>
+          <div class="flex gap-1.5">
+            <button type="button" onclick="copyJsonTemplate()" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-[11px] font-bold">نسخ قالب جاهز</button>
+            <button type="button" onclick="exportCustomJson()" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-[11px] font-bold">تصدير أسئلتي</button>
+          </div>
+        </div>
+        <textarea id="json-paste-area" rows="2" placeholder='الصق مصفوفة JSON هنا أو انسخ رابط Raw من GitHub...' class="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-700 text-[11px] font-mono text-left" dir="ltr"></textarea>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="importJsonFromText()" class="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs btn-press">📥 استيراد ودمج البيانات</button>
+          <label class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs text-center cursor-pointer btn-press">
+            📂 رفع ملف JSON من الجهاز
+            <input type="file" accept=".json,application/json" onchange="importJsonFromFile(event)" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <div id="json-feedback" class="hidden p-2.5 rounded-xl text-xs font-bold text-center"></div>
+
+      <div class="space-y-1">
+        <div class="text-xs font-black">الأسئلة المخصصة المحفوظة (${customQuestions.length}):</div>
+        ${listHTML}
+      </div>
+    </div>
+  `);
+}
+
+function showJsonFeedback(msg, ok) {
+  const el = $('json-feedback');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `p-2.5 rounded-xl text-xs font-bold text-center ${
+    ok
+      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+      : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+  }`;
+  el.classList.remove('hidden');
+}
+
+function addCustomCategory() {
+  const name = ($('new-cat-name')?.value || '').trim();
+  const icon = $('new-cat-icon')?.value || '⭐';
+  if (!name) {
+    showJsonFeedback('⚠️ اكتب اسم الفئة أولاً.', false);
+    return;
+  }
+  const id = 'custom_' + Date.now();
+  customCategories.push({ id, c: name, icon });
+  saveCustomCategories();
+  SoundFX.correct();
+  openCustomQuestionsModal();
+  showJsonFeedback(`✓ تمت إضافة فئة "${name}" بنجاح!`, true);
+}
+
+function deleteCategoryById(id, isCustom) {
+  if (isCustom) {
+    customCategories = customCategories.filter(c => c.id !== id);
+    saveCustomCategories();
+    customQuestions = customQuestions.filter(q => q.catId !== id);
+    saveCustomQuestions();
+  } else {
+    if (!hiddenDefaultCatIds.includes(id)) {
+      hiddenDefaultCatIds.push(id);
+      saveHiddenCategories();
+    }
+  }
+  state.selectedCatIds = state.selectedCatIds.filter(cid => cid !== id);
+  saveState();
+  SoundFX.wrong();
+  openCustomQuestionsModal();
+}
+
+function restoreDefaultCategories() {
+  hiddenDefaultCatIds = [];
+  saveHiddenCategories();
+  SoundFX.correct();
+  openCustomQuestionsModal();
+  showJsonFeedback('✓ تمت استعادة جميع الفئات الأساسية بنجاح!', true);
+}
+
+function addCustomQuestion() {
+  const catId = $('cq-cat')?.value;
+  const p = parseInt($('cq-pts')?.value || '200', 10);
+  const q = ($('cq-q')?.value || '').trim();
+  const a = ($('cq-a')?.value || '').trim();
+  const h = ($('cq-h')?.value || '').trim();
+
+  if (!catId || !q || !a) {
+    showJsonFeedback('⚠️ يرجى كتابة السؤال والإجابة الصحيحة.', false);
+    SoundFX.wrong();
+    return;
+  }
+
+  customQuestions.unshift({ catId, p, q, a, h });
+  saveCustomQuestions();
+  SoundFX.correct();
+  openCustomQuestionsModal();
+  showJsonFeedback('✓ تم حفظ السؤال وإضافته للسحب العشوائي!', true);
+}
+
+function deleteCustomQuestion(index) {
+  customQuestions.splice(index, 1);
+  saveCustomQuestions();
+  SoundFX.wrong();
+  openCustomQuestionsModal();
+}
+
+function copyJsonTemplate() {
+  const sample = JSON.stringify([
+    { catId: 'general', p: 200, q: 'ما هو أطول برج في العالم؟', a: 'برج خليفة', h: 'يقع في مدينة دبي' },
+    { catId: 'geo', p: 400, q: 'ما عاصمة إسبانيا؟', a: 'مدريد', h: 'ليست برشلونة' }
+  ], null, 2);
+
+  const area = $('json-paste-area');
+  if (area) {
+    area.value = sample;
+    area.select();
+    try { document.execCommand('copy'); } catch (e) {}
+  }
+  SoundFX.click();
+  showJsonFeedback('✓ تم نسخ القالب الجاهز في مربع النص!', true);
+}
+
+function exportCustomJson() {
+  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(customQuestions, null, 2));
+  const dl = document.createElement('a');
+  dl.setAttribute('href', dataStr);
+  dl.setAttribute('download', 'ammak_questions_bank.json');
+  document.body.appendChild(dl);
+  dl.click();
+  dl.remove();
+  SoundFX.click();
+}
+
+function parseAndMergeJson(rawText) {
+  try {
+    const parsed = JSON.parse(rawText);
+    let rows;
+    if (Array.isArray(parsed)) {
+      // الصيغة المسطحة القديمة: [{catId, p, q, a, h}]
+      rows = parsed;
+    } else if (parsed && Array.isArray(parsed.categories)) {
+      // صيغة بنك الأسئلة 2026: {categories:[{id, name, questions:[{points, question, answer}]}]}
+      const categoryIds = {
+        general_culture: 'general',
+        geography: 'geo',
+        history: 'history',
+        football: 'football',
+        film_tv: 'movies',
+        technology: 'tech',
+        science_nature: 'science',
+        puzzles: 'riddles'
+      };
+      rows = parsed.categories.flatMap(category =>
+        (Array.isArray(category.questions) ? category.questions : []).map(item => ({
+          catId: categoryIds[category.id],
+          p: item.points,
+          q: item.question,
+          a: item.answer,
+          h: ''
+        }))
+      );
+    } else {
+      throw new Error('يجب أن يكون الملف مصفوفة أسئلة أو بنكًا يحتوي على categories');
+    }
+    let added = 0;
+    rows.forEach(item => {
+      if (item && item.catId && item.q && item.a) {
+        const pts = [200, 400, 600].includes(Number(item.p)) ? Number(item.p) : 200;
+        customQuestions.unshift({
+          catId: String(item.catId),
+          p: pts,
+          q: String(item.q).trim(),
+          a: String(item.a).trim(),
+          h: item.h ? String(item.h).trim() : ''
+        });
+        added++;
+      }
+    });
+    if (added === 0) throw new Error('لم يتم العثور على أسئلة صالحة');
+    saveCustomQuestions();
+    SoundFX.correct();
+    openCustomQuestionsModal();
+    showJsonFeedback(`✓ تم استيراد ودمج ${added} سؤال بنجاح!`, true);
+  } catch (err) {
+    SoundFX.wrong();
+    showJsonFeedback('⚠️ خطأ في تنسيق JSON: ' + err.message, false);
+  }
+}
+
+function importJsonFromText() {
+  const inputVal = ($('json-paste-area')?.value || '').trim();
+  if (!inputVal) {
+    showJsonFeedback('⚠️ اكتب رابط GitHub أو الصق محتوى JSON أولاً.', false);
+    return;
+  }
+
+  // إذا كان المدخل رابط (مثل رابط GitHub الخام Raw)
+  if (inputVal.startsWith('http://') || inputVal.startsWith('https://')) {
+    showJsonFeedback('⏳ جاري جلب الأسئلة من الرابط...', true);
+    fetch(inputVal)
+      .then(res => {
+        if (!res.ok) throw new Error('فشل جلب الملف من الرابط (تأكد من أن الرابط مباشر Raw)');
+        return res.text();
+      })
+      .then(text => parseAndMergeJson(text))
+      .catch(err => {
+        SoundFX.wrong();
+        showJsonFeedback('⚠️ خطأ في تحميل الرابط: ' + err.message, false);
+      });
+  } else {
+    parseAndMergeJson(inputVal);
+  }
+}
+
+function importJsonFromFile(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => parseAndMergeJson(ev.target.result);
+  reader.readAsText(file);
+}
+
+// ==========================================
+// 7. لوحة اللعب الرئيسية والتحكيم
+// ==========================================
+function renderGame() {
+  if ($('btn-referee')) $('btn-referee').classList.remove('hidden');
+  if ($('btn-new-top')) $('btn-new-top').classList.remove('hidden');
+
+  const usedSet = new Set(state.usedCells);
+  const t0 = state.teams[0];
+  const t1 = state.teams[1];
+
+  const renderTeamCard = (t, idx) => {
+    const active = state.turn === idx;
+    const chip = (used, label) => `
+      <span class="px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+        used
+          ? 'line-through opacity-40 border-stone-300 dark:border-slate-700'
+          : 'bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800'
+      }">${label}</span>
+    `;
+    return `
+      <div class="p-3.5 sm:p-4 rounded-2xl border-2 transition ${
+        active
+          ? 'border-teal-600 dark:border-teal-400 bg-white dark:bg-slate-900 shadow-md shadow-teal-600/10'
+          : 'border-stone-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 opacity-85'
+      }">
+        <div class="flex items-center justify-between gap-2">
+          <div class="font-black text-base sm:text-lg truncate flex items-center gap-1.5">
+            <span>${esc(t.name)}</span>
+            ${active ? '<span class="text-xs px-2 py-0.5 rounded-full bg-teal-600 text-white">دورهم 🎯</span>' : ''}
+          </div>
+          <div class="text-2xl sm:text-3xl font-black text-teal-700 dark:text-teal-400">${t.score}</div>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mt-2">
+          ${chip(t.doubleUsed, '⚡ ضربة جزاء')}
+          ${chip(t.hintUsed, '📞 اتصال بصديق')}
+          ${chip(t.stealUsed, '🥷 سرقة')}
+        </div>
+      </div>
+    `;
+  };
+
+  let gridHTML = state.board.map((cat, cIdx) => {
+    const rem = cat.questions.filter((_, rIdx) => !usedSet.has(`${cIdx}-${rIdx}`)).length;
+    return `
+      <div class="p-2.5 rounded-2xl bg-gradient-to-b from-teal-700 to-teal-800 dark:from-teal-800 dark:to-slate-900 text-white text-center shadow-sm flex flex-col justify-center min-h-[64px]">
+        <div class="text-lg leading-none mb-1">${cat.icon}</div>
+        <div class="font-black text-xs sm:text-sm leading-tight line-clamp-1">${esc(cat.c)}</div>
+        <div class="text-[10px] opacity-75 mt-0.5">متبقي ${rem}</div>
+      </div>
+    `;
+  }).join('');
+
+  for (let r = 0; r < 6; r++) {
+    for (let c = 0; c < 6; c++) {
+      const key = `${c}-${r}`;
+      const isUsed = usedSet.has(key);
+      const pts = POINTS[r];
+      const colorClass = pts === 200
+        ? 'text-emerald-600 dark:text-emerald-400'
+        : pts === 400
+          ? 'text-amber-600 dark:text-amber-400'
+          : 'text-rose-600 dark:text-rose-400';
+
+      gridHTML += `
+        <button type="button" ${isUsed ? 'disabled' : `onclick="pickCell(${c}, ${r})"`}
+          class="py-3.5 sm:py-4 px-2 rounded-2xl font-black text-lg sm:text-xl border transition btn-press ${
+            isUsed
+              ? 'opacity-0 pointer-events-none'
+              : `bg-white dark:bg-slate-900 hover:bg-teal-50 dark:hover:bg-slate-800 border-stone-200 dark:border-slate-800 shadow-sm ${colorClass}`
+          }">
+          ${pts}
+        </button>
+      `;
+    }
+  }
+
+  $('app').innerHTML = `
+    <div class="space-y-4 animate-pop">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        ${renderTeamCard(t0, 0)}
+        ${renderTeamCard(t1, 1)}
+      </div>
+
+      <div class="text-center text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300">
+        الدور الآن على <span class="text-teal-700 dark:text-teal-400 font-black underline">${esc(state.teams[state.turn].name)}</span> — اختاروا فئة ونقاط
+      </div>
+
+      <div class="board-scroll overflow-x-auto pb-2">
+        <div class="grid grid-cols-6 gap-2 min-w-[600px]">
+          ${gridHTML}
+        </div>
+      </div>
+
+      <div class="flex justify-center pt-1">
+        <button type="button" onclick="finishGame()" class="px-5 py-2.5 rounded-xl bg-stone-200 hover:bg-stone-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-xs sm:text-sm transition btn-press">
+          🏁 إنهاء اللعبة وإعلان الفائز
+        </button>
+      </div>
+    </div>
+  `;
+
+  if (usedSet.size >= 36) {
+    finishGame();
+  }
+}
+
+function pickCell(cIdx, rIdx) {
+  const key = `${cIdx}-${rIdx}`;
+  if (!state.usedCells.includes(key)) {
+    state.usedCells.push(key);
+    saveState();
+  }
+  const cat = state.board[cIdx];
+  const qObj = cat.questions[rIdx];
+  currentQ = {
+    cIdx,
+    rIdx,
+    catName: cat.c,
+    catIcon: cat.icon,
+    pts: POINTS[rIdx],
+    q: qObj.q,
+    a: qObj.a,
+    h: qObj.h,
+    doubled: false,
+    hintShown: false,
+    answerShown: false,
+    isSteal: false
+  };
+  SoundFX.click();
+  renderPreQuestionModal();
+}
+
+function renderPreQuestionModal() {
+  const team = state.teams[state.turn];
+  const canDouble = !team.doubleUsed && !currentQ.doubled;
+
+  showModal(`
+    <div class="space-y-4">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 text-xs font-extrabold">
+        <span>${currentQ.catIcon} ${esc(currentQ.catName)}</span>
+        <span>•</span>
+        <span>${currentQ.pts} نقطة</span>
+      </div>
+
+      <h3 class="text-xl sm:text-2xl font-black">دور ${esc(team.name)}</h3>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+        هل ترغبون بتفعيل <b>ضربة جزاء (مضاعفة النقاط ×2)</b> قبل رؤية السؤال؟
+      </p>
+
+      <div class="flex flex-wrap justify-center gap-2.5 pt-2">
+        <button type="button" ${canDouble ? 'onclick="activateDouble()"' : 'disabled'}
+          class="px-5 py-3 rounded-2xl font-black text-sm transition btn-press ${
+            currentQ.doubled
+              ? 'bg-amber-500 text-slate-950'
+              : canDouble
+                ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-md'
+                : 'bg-stone-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+          }">
+          ${currentQ.doubled ? '⚡ تم تفعيل الدبل (×2)' : '⚡ ضربة جزاء (دبل)'}
+        </button>
+
+        <button type="button" onclick="openQuestionView()"
+          class="px-6 py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-black text-sm shadow-md transition btn-press">
+          👁️ اعرض السؤال
+        </button>
+      </div>
+    </div>
+  `);
+}
+
+function activateDouble() {
+  const team = state.teams[state.turn];
+  if (team.doubleUsed || currentQ.doubled) return;
+  team.doubleUsed = true;
+  currentQ.doubled = true;
+  SoundFX.double();
+  saveState();
+  renderPreQuestionModal();
+}
+
+function openQuestionView() {
+  SoundFX.openQ();
+  const duration = currentQ.isSteal ? 15 : 30;
+  renderQuestionModal();
+  startTimer(duration, () => {});
+}
+
+function renderQuestionModal() {
+  const activeIdx = currentQ.isSteal ? 1 - state.turn : state.turn;
+  const activeTeam = state.teams[activeIdx];
+  const canHint = !currentQ.isSteal && !activeTeam.hintUsed && !currentQ.hintShown;
+
+  showModal(`
+    <div class="space-y-4">
+      <div class="flex items-center justify-between gap-2 text-xs font-extrabold">
+        <span class="px-3 py-1 rounded-full bg-stone-100 dark:bg-slate-800">
+          ${currentQ.catIcon} ${esc(currentQ.catName)} (${currentQ.pts * (currentQ.doubled && !currentQ.isSteal ? 2 : 1)} نقطة)
+        </span>
+        <span class="px-3 py-1 rounded-full ${currentQ.isSteal ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300'}">
+          ${currentQ.isSteal ? '🥷 سرقة: ' : 'يجيب: '}${esc(activeTeam.name)}
+        </span>
+      </div>
+
+      <!-- شريط المؤقت -->
+      <div class="p-2.5 rounded-2xl bg-stone-50 dark:bg-slate-950/70 border border-stone-200 dark:border-slate-800 space-y-1.5">
+        <div class="flex items-center justify-between text-xs font-black">
+          <span id="timer-val" class="text-base text-teal-600 dark:text-teal-400">${timerSeconds} ث</span>
+          <div class="flex gap-1.5">
+            <button id="btn-timer-pause" type="button" onclick="toggleTimerPause()" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-700 text-[11px]">
+              ${timerPaused ? '▶️ استئناف' : '⏸️ إيقاف'}
+            </button>
+            <button type="button" onclick="resetTimer()" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-700 text-[11px]">
+              🔄 إعادة
+            </button>
+          </div>
+        </div>
+        <div class="w-full h-2 bg-stone-200 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div id="timer-bar" class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width: 100%"></div>
+        </div>
+      </div>
+
+      <!-- نص السؤال -->
+      <div class="py-3 px-2 text-xl sm:text-2xl font-black leading-relaxed text-slate-900 dark:text-white">
+        ${esc(currentQ.q)}
+      </div>
+
+      ${currentQ.hintShown ? `
+        <div class="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-bold">
+          💡 تلميح: ${esc(currentQ.h)}
+        </div>
+      ` : ''}
+
+      ${currentQ.answerShown ? `
+        <div class="p-3 rounded-2xl bg-teal-50 dark:bg-teal-950/50 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 text-sm sm:text-base font-black">
+          ✅ الإجابة: ${esc(currentQ.a)}
+        </div>
+      ` : ''}
+
+      <!-- وسائل المساعدة وكشف الإجابة -->
+      <div class="flex flex-wrap justify-center gap-2 pt-1">
+        ${canHint ? `
+          <button type="button" onclick="useHint()" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs btn-press">
+            📞 اتصال بصديق (تلميح)
+          </button>
+        ` : ''}
+        ${!currentQ.answerShown ? `
+          <button type="button" onclick="revealAnswer()" class="px-4 py-2 rounded-xl bg-stone-200 hover:bg-stone-300 dark:bg-slate-800 dark:hover:bg-slate-700 font-extrabold text-xs btn-press">
+            👁️ إظهار الإجابة للحكم
+          </button>
+        ` : ''}
+      </div>
+
+      <!-- أزرار التحكيم -->
+      <div class="grid grid-cols-2 gap-2.5 pt-2 border-t border-stone-200 dark:border-slate-800">
+        <button type="button" onclick="judgeAnswer(true)" class="py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base shadow-md btn-press">
+          ✓ إجابة صحيحة
+        </button>
+        <button type="button" onclick="judgeAnswer(false)" class="py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm sm:text-base shadow-md btn-press">
+          ✗ إجابة خاطئة
+        </button>
+      </div>
+    </div>
+  `);
+}
+
+function useHint() {
+  const team = state.teams[state.turn];
+  if (team.hintUsed || currentQ.hintShown) return;
+  team.hintUsed = true;
+  currentQ.hintShown = true;
+  SoundFX.hint();
+  saveState();
+  renderQuestionModal();
+}
+
+function revealAnswer() {
+  SoundFX.click();
+  currentQ.answerShown = true;
+  renderQuestionModal();
+}
+
+function judgeAnswer(isCorrect) {
+  stopTimer();
+  const activeIdx = currentQ.isSteal ? 1 - state.turn : state.turn;
+  const activeTeam = state.teams[activeIdx];
+
+  if (isCorrect) {
+    const earned = currentQ.isSteal ? currentQ.pts : currentQ.pts * (currentQ.doubled ? 2 : 1);
+    activeTeam.score += earned;
+    SoundFX.correct();
+    saveState();
+    showResultModal(`🎉 أحسنتم! ${esc(activeTeam.name)} يكسب ${earned} نقطة`);
+    return;
+  }
+
+  SoundFX.wrong();
+  const otherIdx = 1 - state.turn;
+  const otherTeam = state.teams[otherIdx];
+
+  if (!currentQ.isSteal && !otherTeam.stealUsed) {
+    showModal(`
+      <div class="space-y-4">
+        <div class="text-4xl">🥷</div>
+        <h3 class="text-xl font-black">أخطأ ${esc(activeTeam.name)}!</h3>
+        <p class="text-sm text-slate-600 dark:text-slate-300">
+          هل يرغب <b>${esc(otherTeam.name)}</b> في استخدام بطاقة <b>السرقة</b> ومحاولة الإجابة؟
+        </p>
+        <div class="flex justify-center gap-3 pt-2">
+          <button type="button" onclick="activateSteal()" class="px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm btn-press">
+            🥷 نعم، سرقة السؤال
+          </button>
+          <button type="button" onclick="showResultModal('❌ إجابة خاطئة، لا نقاط لأحد')" class="px-5 py-3 rounded-2xl bg-stone-200 dark:bg-slate-800 font-extrabold text-sm btn-press">
+            لا، تخطي
+          </button>
+        </div>
+      </div>
+    `);
+    return;
+  }
+
+  showResultModal('❌ إجابة خاطئة، لا نقاط لأحد');
+}
+
+function activateSteal() {
+  const otherIdx = 1 - state.turn;
+  state.teams[otherIdx].stealUsed = true;
+  currentQ.isSteal = true;
+  currentQ.answerShown = false;
+  saveState();
+  openQuestionView();
+}
+
+function showResultModal(titleMsg) {
+  showModal(`
+    <div class="space-y-4">
+      <h3 class="text-xl sm:text-2xl font-black">${titleMsg}</h3>
+      <div class="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/50 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 font-black text-base">
+        الإجابة الصحيحة: ${esc(currentQ.a)}
+      </div>
+      <div class="text-xs font-bold text-slate-500 dark:text-slate-400">
+        ${esc(state.teams[0].name)}: <b>${state.teams[0].score}</b> | ${esc(state.teams[1].name)}: <b>${state.teams[1].score}</b>
+      </div>
+      <button type="button" onclick="nextTurn()" class="w-full py-3 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-black text-sm sm:text-base btn-press">
+        الجولة التالية ⬅️
+      </button>
+    </div>
+  `);
+}
+
+function nextTurn() {
+  SoundFX.click();
+  state.turn = 1 - state.turn;
+  saveState();
+  closeModal();
+  renderGame();
+}
+
+// ==========================================
+// 8. لوحة الحكم وشاشة الفوز والاحتفالية
+// ==========================================
+function openRefereeModal() {
+  SoundFX.click();
+  showModal(`
+    <div class="space-y-4 text-right">
+      <div class="flex items-center justify-between border-b border-stone-200 dark:border-slate-800 pb-2">
+        <h3 class="text-lg font-black">⚖️ لوحة الحكم (تعديل النقاط)</h3>
+        <button type="button" onclick="closeModal()" class="w-8 h-8 rounded-full bg-stone-100 dark:bg-slate-800 font-black">✕</button>
+      </div>
+      ${state.teams.map((t, i) => `
+        <div class="p-3 rounded-2xl bg-stone-50 dark:bg-slate-950 border border-stone-200 dark:border-slate-800 flex items-center justify-between gap-2">
+          <span class="font-black text-sm">${esc(t.name)}</span>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="adjustScore(${i}, -100)" class="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 font-black">-100</button>
+            <span id="ref-score-${i}" class="w-14 text-center font-black text-lg">${t.score}</span>
+            <button type="button" onclick="adjustScore(${i}, 100)" class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-black">+100</button>
+          </div>
+        </div>
+      `).join('')}
+      <button type="button" onclick="closeModal(); renderGame();" class="w-full py-2.5 rounded-xl bg-teal-600 text-white font-black text-sm">
+        حفظ وإغلاق
+      </button>
+    </div>
+  `);
+}
+
+function adjustScore(teamIdx, delta) {
+  SoundFX.click();
+  state.teams[teamIdx].score += delta;
+  const el = $(`ref-score-${teamIdx}`);
+  if (el) el.textContent = state.teams[teamIdx].score;
+  saveState();
+}
+
+function confirmNewGame() {
+  SoundFX.click();
+  showModal(`
+    <div class="space-y-4">
+      <h3 class="text-xl font-black">بدء مباراة جديدة؟</h3>
+      <p class="text-sm text-slate-500 dark:text-slate-400">سيتم مسح نقاط اللوحة الحالية والعودة لشاشة اختيار الفئات.</p>
+      <div class="flex justify-center gap-3">
+        <button type="button" onclick="resetToSetup()" class="px-5 py-2.5 rounded-xl bg-rose-600 text-white font-black text-sm">نعم، لعبة جديدة</button>
+        <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-xl bg-stone-200 dark:bg-slate-800 font-bold text-sm">إلغاء</button>
+      </div>
+    </div>
+  `);
+}
+
+function resetToSetup() {
+  state.screen = 'setup';
+  state.usedCells = [];
+  saveState();
+  closeModal();
+  renderSetup();
+}
+
+function finishGame() {
+  stopTimer();
+  SoundFX.win();
+  launchConfetti();
+  const [t0, t1] = state.teams;
+  const headline = t0.score === t1.score
+    ? '🤝 تعادل مثير بين الفريقين!'
+    : `🏆 الفائز: ${esc(t0.score > t1.score ? t0.name : t1.name)}`;
+
+  showModal(`
+    <div class="space-y-4">
+      <div class="text-5xl">🎉</div>
+      <h2 class="text-2xl sm:text-3xl font-black text-teal-700 dark:text-teal-400">${headline}</h2>
+      <div class="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-stone-50 dark:bg-slate-950 border border-stone-200 dark:border-slate-800">
+        <div>
+          <div class="text-xs text-slate-500 font-bold">${esc(t0.name)}</div>
+          <div class="text-2xl font-black">${t0.score}</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-bold">${esc(t1.name)}</div>
+          <div class="text-2xl font-black">${t1.score}</div>
+        </div>
+      </div>
+      <div class="flex flex-wrap justify-center gap-2.5 pt-2">
+        <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-xl bg-stone-200 dark:bg-slate-800 font-bold text-sm">العودة للوحة</button>
+        <button type="button" onclick="resetToSetup()" class="px-6 py-2.5 rounded-xl bg-teal-600 text-white font-black text-sm">🔄 مباراة جديدة</button>
+      </div>
+    </div>
+  `);
+}
+
+function launchConfetti() {
+  const canvas = $('confetti-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const colors = ['#0d9488', '#f59e0b', '#e11d48', '#10b981', '#3b82f6'];
+  const pieces = Array.from({ length: 90 }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height - canvas.height,
+    w: Math.random() * 10 + 5,
+    h: Math.random() * 6 + 4,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    vy: Math.random() * 3 + 2,
+    vx: Math.random() * 2 - 1,
+    rot: Math.random() * 360
+  }));
+
+  let frames = 0;
+  function step() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.y += p.vy;
+      p.x += p.vx;
+      p.rot += 4;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    frames++;
+    if (frames < 180) requestAnimationFrame(step);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(step);
+}
+
+// تحميل البنك من ملف بجانب صفحة اللعبة (مناسب لـ GitHub Pages)
+async function loadQuestionBankFromRepo() {
+  const response = await fetch('./question_bank_2026.json', { cache: 'no-cache' });
+  if (!response.ok) throw new Error(`تعذر تحميل بنك الأسئلة: ${response.status}`);
+  const bank = await response.json();
+  if (!bank || !Array.isArray(bank.categories)) throw new Error('صيغة بنك الأسئلة غير صحيحة');
+
+  const categoryIds = {
+    general_culture: 'general',
+    geography: 'geo',
+    history: 'history',
+    football: 'football',
+    film_tv: 'movies',
+    technology: 'tech',
+    science_nature: 'science',
+    puzzles: 'riddles'
+  };
+  let loaded = 0;
+  bank.categories.forEach(category => {
+    const gameId = categoryIds[category.id];
+    const gameCategory = DEFAULT_BANK.find(item => item.id === gameId);
+    if (!gameCategory || !Array.isArray(category.questions)) return;
+    gameCategory.pool = category.questions
+      .filter(item => item && [200, 400, 600].includes(Number(item.points)) && item.question && item.answer)
+      .map(item => ({
+        p: Number(item.points),
+        q: String(item.question).trim(),
+        a: String(item.answer).trim(),
+        h: ''
+      }));
+    loaded += gameCategory.pool.length;
+  });
+  if (!loaded) throw new Error('لم يتم العثور على أسئلة صالحة في الملف');
+  console.info(`تم تحميل ${loaded} سؤال من question_bank_2026.json`);
+}
+
+// ==========================================
+// 9. تهيئة التشغيل عند تحميل الصفحة
+// ==========================================
+window.addEventListener('DOMContentLoaded', async () => {
+  loadState();
+  applyTheme();
+  if ($('icon-sound')) $('icon-sound').textContent = state.sound ? '🔊' : '🔇';
+  try {
+    await loadQuestionBankFromRepo();
+  } catch (error) {
+    console.error('تعذر تحميل بنك الأسئلة من GitHub Pages:', error);
+  }
+  if (state.screen === 'game' && Array.isArray(state.board) && state.board.length === 6) {
+    renderGame();
+  } else {
+    renderSetup();
+  }
+});
+</script>
+</body>
+</html>
